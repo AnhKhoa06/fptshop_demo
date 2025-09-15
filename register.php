@@ -27,9 +27,9 @@ if (isset($_POST['sign_up'])) {
         exit();
     }
 
-    // Them vao database
-    $sql = "INSERT INTO users (username, email, phone, password) 
-            VALUES ('$username', '$email', '$phone', '$hashed_password')";
+    // Them vao database voi role va status mac dinh cho nguoi dung
+    $sql = "INSERT INTO users (username, email, phone, password, role, status) 
+            VALUES ('$username', '$email', '$phone', '$hashed_password', 'user', 'active')";
 
     if (mysqli_query($connect, $sql)) {
         echo "<script>

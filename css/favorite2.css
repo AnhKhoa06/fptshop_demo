@@ -1,0 +1,165 @@
+.main-content {
+  padding: 15px;
+  background-color: #fff;
+  width: 768px;
+  margin-left: -15px;
+  margin-bottom: 100px;
+}
+
+.main-content h3 {
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #333;
+}
+
+.favorite-products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.favorite-item {
+  display: flex;
+  align-items: center;
+  background-color: #f5f3f3;
+  padding: 15px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 800px;
+  gap: 15px;
+  position: relative;
+}
+
+.favorite-item img {
+  width: 65px;
+  height: 65px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.favorite-info {
+  flex: 1;
+}
+
+.favorite-info h4 {
+  margin: 0 0 5px;
+  font-size: 16px;
+  color: #333;
+}
+
+.favorite-info .spec {
+  margin: 5px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.favorite-info .price-container {
+  margin: 5px 0;
+}
+
+.favorite-info .price {
+  font-size: 16px;
+  font-weight: bold;
+  color: #e60000;
+}
+
+.favorite-info .discount-label {
+  margin-left: 10px;
+  background-color: #ffcccc;
+  color: #e60000;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.favorite-info .original-price {
+  margin-left: 10px;
+  text-decoration: line-through;
+  color: #999;
+  font-size: 14px;
+}
+
+.add-to-cart {
+  background-color: #362e2e;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.add-to-cart:hover {
+  background-color: #e40000;
+  color: #ffffff;
+}
+
+.arrow-icon {
+  font-size: 16px;
+}
+
+.notification-content {
+  width: 760px;
+  padding: 20px;
+  background-color: #f0eded;
+  margin-left: -16px;
+  margin-top: -20px;
+}
+
+.notification-title {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.notification-box {
+  text-align: left; /* Căn trái thay vì căn giữa */
+  background-color: #f5f3f3;
+  margin-left: -12px;
+  padding-left: 20px;
+  padding-top: 20px;
+  padding-bottom: 2px;
+  border-radius: 15px;
+  position: relative; /* Định vị tương đối để chứa nút "X" */
+}
+
+.notification-box h2 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 16px;
+  margin-top: -5px;
+  margin-left: -3px;
+}
+
+.notification-box p {
+  color: #616060;
+  line-height: 1.5;
+  text-align: left; /* Đảm bảo xuống dòng vẫn căn trái */
+}
+.tick-icon {
+  color: #28a745; /* Màu xanh lá cho dấu tick */
+  margin-right: 4px; /* Khoảng cách giữa icon và chữ */
+  font-size: 18px; /* Kích thước icon */
+  vertical-align: middle; /* Căn chỉnh icon với chữ */
+}
+.close-btn {
+  float: right; /* Đẩy nút "X" sang bên phải */
+  font-size: 20px; /* Kích thước nút */
+  color: #888; /* Màu chữ */
+  cursor: pointer; /* Con trỏ tay khi hover */
+  padding: 2px 8px; /* Khoảng cách bên trong */
+  border: none;
+  background: none;
+  position: absolute; /* Định vị tuyệt đối trong .notification-box */
+  top: 10px; /* Khoảng cách từ đỉnh */
+  right: 10px; /* Khoảng cách từ phải */
+}
+
+.close-btn:hover {
+  color: #ff0000; /* Màu đỏ khi hover */
+}

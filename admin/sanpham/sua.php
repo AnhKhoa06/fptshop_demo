@@ -54,6 +54,7 @@
         $quantity = $_POST['quantity'];
         $brand_id = $_POST['brand_id'];
         $color = $_POST['color'][0]; // Lấy màu đầu tiên làm màu mặc định
+        $specifications = $_POST['specifications'] ?? '[]'; // Lấy dữ liệu thông số kỹ thuật, mặc định là mảng rỗng nếu không có
 
         // Cập nhật bảng products
         $sql = "UPDATE products SET 
@@ -77,13 +78,14 @@
             review_content = ?,
             quantity = ?, 
             brand_id = ?,
-            color = ?
+            color = ?,
+            specifications = ?
             WHERE prd_id = ?";
         $stmt = mysqli_prepare($connect, $sql);
-        mysqli_stmt_bind_param($stmt, "ssssssssssssiissssiisi", 
+        mysqli_stmt_bind_param($stmt, "ssssssssssssiissssiissi", 
             $prd_name, $product_code, $front_camera, $rear_camera, $cpu, $gpu, $gpu_rating, 
             $screen, $screen_rating, $pin, $pin_rating, $image, $price, $price_discount, 
-            $ram, $rom, $operating_system, $review_content, $quantity, $brand_id, $color, $id
+            $ram, $rom, $operating_system, $review_content, $quantity, $brand_id, $color, $specifications, $id
         );
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
@@ -334,6 +336,14 @@
                             <label>Hệ điều hành</label>
                             <input type="text" name="operating_system" class="form-control" placeholder="Nhập hệ điều hành (VD: Android 14, iOS 17)" required value="<?= htmlspecialchars($row_up['operating_system']); ?>">
                         </div>
+                        <!-- === THÔNG SỐ KỸ THUẬT === -->
+                        <div class="form-group">
+                            <label>Thông số kỹ thuật</label>
+                            <div id="pasteArea" contenteditable="true" style="border: 1px solid #ccc; min-height: 100px; padding: 5px; margin-bottom: 10px;"></div>
+                            <div id="specTable"></div>
+                            <input type="hidden" name="specifications" id="specifications" value='<?= htmlspecialchars($row_up['specifications'] ?? '[]'); ?>'>
+                            <div id="errorMessage" style="color: red; display: none;">Không thể parse dữ liệu bảng. Vui lòng kiểm tra nội dung sao chép.</div>
+                        </div>
                     </div>
                 </div>
 
@@ -451,6 +461,18 @@
             </form>
             <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
             <script src="https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js"></script>
+            <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
+            <script src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
+            <style>
+                #specTable .tabulator-cell {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: left;
+                }
+                #specTable .tabulator-header {
+                    background-color: #f5f5f5;
+                }
+            </style>
             <script>
                 // Khởi tạo CKEditor
                 ClassicEditor
@@ -459,7 +481,7 @@
                         console.error(error);
                     });
 
-                let colorIndex = <?= count($color_data) > 0 ? count($color_data) : 1 ?>; // Khởi tạo index dựa trên số phiên bản hiện có
+                let colorIndex = <?= count($color_data) > 0 ? count($color_data) : 1 ?>;
                 document.querySelector('.add_color').addEventListener('click', function() {
                     const field = `
                     <div class="row color-row mt-3">
@@ -502,16 +524,14 @@
                         </div>
                     </div>`;
                     document.querySelector('#color_fields').insertAdjacentHTML('beforeend', field);
-                    colorIndex++; // Tăng index cho phiên bản màu sắc tiếp theo
+                    colorIndex++;
 
-                    // Thêm sự kiện xóa cho nút mới
                     document.querySelectorAll('.remove_color').forEach(button => {
-                        button.removeEventListener('click', handleRemoveColor); // Xóa sự kiện cũ nếu có
+                        button.removeEventListener('click', handleRemoveColor);
                         button.addEventListener('click', handleRemoveColor);
                     });
                 });
 
-                // Hàm xử lý xóa màu sắc
                 function handleRemoveColor() {
                     const colorInput = this.closest('.row').querySelector('input[name^="color"]');
                     const colorValue = colorInput ? colorInput.value : 'không xác định';
@@ -535,10 +555,95 @@
                     }
                 }
 
-                // Thêm sự kiện xóa cho các nút có sẵn
                 document.querySelectorAll('.remove_color').forEach(button => {
                     button.addEventListener('click', handleRemoveColor);
                 });
+
+                // Xử lý thông số kỹ thuật giống như trong them.php
+                let table;
+                document.getElementById('pasteArea').addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    let text = (e.clipboardData || window.clipboardData).getData('text/html');
+                    console.log('Nội dung HTML dán:', text); // Debug nội dung HTML
+                    document.getElementById('pasteArea').innerHTML = text;
+
+                    if (table) {
+                        table.destroy();
+                    }
+
+                    let data = parseTableData(text);
+                    if (data.length === 0) {
+                        document.getElementById('errorMessage').style.display = 'block';
+                        document.getElementById('specifications').value = '[]';
+                        return;
+                    }
+
+                    document.getElementById('errorMessage').style.display = 'none';
+                    table = new Tabulator("#specTable", {
+                        data: data,
+                        columns: [
+                            { title: "Thông số", field: "param" },
+                            { title: "Chi tiết", field: "value" }
+                        ],
+                        layout: "fitData",
+                        resizableColumns: false,
+                        selectable: false
+                    });
+
+                    document.getElementById('specifications').value = JSON.stringify(data);
+                });
+
+                function parseTableData(html) {
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(html, 'text/html');
+                    let data = [];
+
+                    let rows = doc.getElementsByTagName('tr');
+                    for (let row of rows) {
+                        let cols = [...row.getElementsByTagName('td'), ...row.getElementsByTagName('th')];
+                        if (cols.length >= 2) {
+                            let param = cols[0].innerText.trim();
+                            let value = cols[1].innerText.trim();
+                            if (param !== '' || value !== '') {
+                                data.push({ param: param, value: value });
+                            }
+                        }
+                    }
+
+                    if (data.length === 0) {
+                        let items = doc.querySelectorAll('ul.text-specifi > li');
+                        for (let item of items) {
+                            let paramAside = item.querySelector('aside:first-child');
+                            let valueAside = item.querySelector('aside:nth-child(2)');
+                            if (paramAside && valueAside) {
+                                let param = paramAside.innerText.trim().replace(/:$/, '');
+                                let valueElements = valueAside.querySelectorAll('span, a');
+                                let value = '';
+                                valueElements.forEach((el, index) => {
+                                    value += el.innerText.trim();
+                                    if (index < valueElements.length - 1) value += ', ';
+                                });
+                                if (param !== '' || value !== '') {
+                                    data.push({ param: param, value: value });
+                                }
+                            }
+                        }
+                    }
+
+                    return data;
+                }
+
+                // Hiển thị dữ liệu ban đầu từ specifications dưới dạng HTML thô
+                let initialData = <?= $row_up['specifications'] ? json_encode(json_decode($row_up['specifications'], true)) : '[]' ?>;
+                if (initialData.length > 0) {
+                    let htmlTable = '<table border="1"><tr><th>Thông số</th><th>Chi tiết</th></tr>';
+                    initialData.forEach(row => {
+                        htmlTable += `<tr><td>${row.param}</td><td>${row.value}</td></tr>`;
+                    });
+                    htmlTable += '</table>';
+                    document.getElementById('pasteArea').innerHTML = htmlTable;
+                    document.getElementById('specifications').value = JSON.stringify(initialData);
+                }
             </script>
         </div>
     </div>

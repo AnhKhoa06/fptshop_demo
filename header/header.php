@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/logofpt7.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>
@@ -65,19 +66,70 @@
                 </div>
             </div>
 
+            <?php
+            require_once 'admin/config/db.php';
+            // Tính số lượng sản phẩm riêng biệt trong giỏ hàng để hiển thị trong header
+            $totalCartItems = 0;
+
+            if (isset($_SESSION['user_id'])) {
+                // Người dùng đã đăng nhập, lấy từ database
+                $user_id = $_SESSION['user_id'];
+                $cartCountQuery = "SELECT COUNT(*) AS total FROM cart WHERE user_id = ?";
+                $stmt = mysqli_prepare($connect, $cartCountQuery);
+                mysqli_stmt_bind_param($stmt, "i", $user_id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                
+                if ($row = mysqli_fetch_assoc($result)) {
+                    $totalCartItems = $row['total'] ?: 0; 
+                }
+            } else {
+                // Người dùng chưa đăng nhập, lấy từ session
+                if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+                    $totalCartItems = count($_SESSION['cart']);
+                }
+            }
+
+            // Lấy địa chỉ động từ cơ sở dữ liệu
+            $delivery_address = 'Chưa có địa chỉ';
+            if (isset($_SESSION['user_id'])) {
+                $user_id = $_SESSION['user_id'];
+                $query = "SELECT address, name, phone FROM users WHERE id = ?";
+                $stmt = mysqli_prepare($connect, $query);
+                mysqli_stmt_bind_param($stmt, "i", $user_id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $user = mysqli_fetch_assoc($result);
+                mysqli_stmt_close($stmt);
+
+                if ($user && !empty($user['address'])) {
+                    $address = json_decode($user['address'], true) ?? [];
+                    $full_address = isset($address['street']) && isset($address['ward']['name']) && isset($address['district']['name']) && isset($address['province']['name'])
+                        ? $address['street'] . ', ' . $address['ward']['name'] . ', ' . $address['district']['name'] . ', ' . $address['province']['name']
+                        : 'Chưa có địa chỉ';
+                    $delivery_address = $full_address;
+                }
+            }
+
+            ?>
+
             
             <div class="cart-section">
                 <!-- Giỏ hàng -->
                 <a href="cart.php" class="cart">
                     <i class="fas fa-shopping-cart"></i> Giỏ hàng
-                    <span class="cart-badge">0</span>
+                    <span class="cart-badge"><?php echo $totalCartItems; ?></span>
                 </a>
             
                 <!-- Giao đến -->
-                <div class="delivery-location">
+                <div class="delivery-location" id="delivery-location">
                     <i class="fas fa-map-marker-alt"></i>
                     <span>Giao đến:</span>
-                    <a href="#" class="delivery-address">170 An Dương Vương, TP Quy Nhơn, Bình Định.</a>
+                    <?php if (isset($_SESSION['user_id']) && $delivery_address !== 'Chưa có địa chỉ'): ?>
+                        <a href="account.php" class="delivery-address" onclick="updateAddress(event)"><?php echo htmlspecialchars($delivery_address); ?></a>
+                    <?php else: ?>
+                        <a href="account.php" class="delivery-address">Thêm địa chỉ ?</a>
+                    <?php endif; ?>
                 </div>
             </div>
                 

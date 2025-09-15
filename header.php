@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/logofpt7.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="stylesheet" href="account.css">
+    <link rel="stylesheet" href="account12.css">
     
 <div>
      <!-- Header -->
@@ -15,23 +16,24 @@
         <div class="container">
             <div class="logo1">
                 <div class="logo">
-                    <a href="#"> <img src="img/download.png" alt="Apple"></a>
+                    <a href="index.php"> <img src="img/download.png" alt="Apple"></a>
                 </div>
             </div>
             <!-- Danh mục -->
             <button class="menu-btn">
                 <a href="#"><i class="fa-solid fa-bars"></i> Danh mục</a>
             </button>
-            <!-- Thanh tìm kiếm -->
+            <!-- Trong file header.php, tìm phần thanh tìm kiếm và chỉnh sửa -->
             <div class="search-box">
-                <input type="text" id="search-input" placeholder="Nhập tên điện thoại, máy tính,... cần tìm">
-                <button type="submit"><i class="fas fa-search"></i></button>
+                <form id="search-form" action="tim-kiem.php" method="get" onsubmit="return validateSearch()">
+                    <input type="text" id="search-input" name="s" placeholder="Nhập tên điện thoại, máy tính,... cần tìm" value="<?php echo isset($_GET['s']) ? htmlspecialchars($_GET['s']) : ''; ?>">
+                    <button type="submit"><i class="fas fa-search"></i></button>
+                </form>
                 <div class="search-tags">
-                    <a href="#" id="tag-iphone16">iphone 16</a>
-                    <a href="#" id="tag-ipad">poco x3</a>
-                    <a href="#" id="tag-oppo">iphone 12prm</a>
-                    <a href="#" id="tag-samsung">ss s25ultra</a>
-                
+                    <a href="#" id="tag-iphone16" onclick="setSearchValue('iphone 16'); return false;">iphone 16</a>
+                    <a href="#" id="tag-ipad" onclick="setSearchValue('laptop acer'); return false;">laptop acer</a>
+                    <a href="#" id="tag-oppo" onclick="setSearchValue('iphone 12 pro'); return false;">iphone 12 pro</a>
+                    <a href="#" id="tag-samsung" onclick="setSearchValue('vivo v25'); return false;">vivov25</a>
                 </div>
             </div>
         
@@ -53,11 +55,11 @@
                     </a>
                     <div class="dropdown-content">
                         <?php if (isset($_SESSION['user'])): ?>
-                            <a href="" style="text-align: center; display: block; padding: 10px;">
+                            <a href="" style="text-align: center; display: block; padding: 5px;">
                                 <?php echo htmlspecialchars($_SESSION['user']); ?>
                             </a>
                         <?php else: ?>
-                            <a href="login1.html" style="text-align: center; display: block; padding: 10px;">
+                            <a href="login1.html" style="text-align: center; display: block; padding: 5px;">
                                 Đăng ký / Đăng nhập
                             </a>
                         <?php endif; ?>
@@ -65,19 +67,69 @@
                 </div>
             </div>
 
+            <?php
+            require_once 'admin/config/db.php';
+            // Tính số lượng sản phẩm riêng biệt trong giỏ hàng để hiển thị trong header
+            $totalCartItems = 0;
+
+            if (isset($_SESSION['user_id'])) {
+                // Người dùng đã đăng nhập, lấy từ database
+                $user_id = $_SESSION['user_id'];
+                $cartCountQuery = "SELECT COUNT(*) AS total FROM cart WHERE user_id = ?";
+                $stmt = mysqli_prepare($connect, $cartCountQuery);
+                mysqli_stmt_bind_param($stmt, "i", $user_id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                
+                if ($row = mysqli_fetch_assoc($result)) {
+                    $totalCartItems = $row['total'] ?: 0; 
+                }
+            } else {
+                // Người dùng chưa đăng nhập, lấy từ session
+                if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+                    $totalCartItems = count($_SESSION['cart']);
+                }
+            }
+
+            // Lấy địa chỉ động từ cơ sở dữ liệu
+            $delivery_address = 'Chưa có địa chỉ';
+            if (isset($_SESSION['user_id'])) {
+                $user_id = $_SESSION['user_id'];
+                $query = "SELECT address, name, phone FROM users WHERE id = ?";
+                $stmt = mysqli_prepare($connect, $query);
+                mysqli_stmt_bind_param($stmt, "i", $user_id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $user = mysqli_fetch_assoc($result);
+                mysqli_stmt_close($stmt);
+
+                if ($user && !empty($user['address'])) {
+                    $address = json_decode($user['address'], true) ?? [];
+                    $full_address = isset($address['street']) && isset($address['ward']['name']) && isset($address['district']['name']) && isset($address['province']['name'])
+                        ? $address['street'] . ', ' . $address['ward']['name'] . ', ' . $address['district']['name'] . ', ' . $address['province']['name']
+                        : 'Chưa có địa chỉ';
+                    $delivery_address = $full_address;
+                }
+            }
+
+            ?>
             
             <div class="cart-section">
                 <!-- Giỏ hàng -->
                 <a href="cart.php" class="cart">
                     <i class="fas fa-shopping-cart"></i> Giỏ hàng
-                    <span class="cart-badge">0</span>
+                    <span class="cart-badge"><?php echo $totalCartItems; ?></span>
                 </a>
             
                 <!-- Giao đến -->
-                <div class="delivery-location">
+                <div class="delivery-location" id="delivery-location">
                     <i class="fas fa-map-marker-alt"></i>
                     <span>Giao đến:</span>
-                    <a href="#" class="delivery-address">170 An Dương Vương, TP Quy Nhơn, Bình Định.</a>
+                    <?php if (isset($_SESSION['user_id']) && $delivery_address !== 'Chưa có địa chỉ'): ?>
+                        <a href="account.php" class="delivery-address" onclick="updateAddress(event)"><?php echo htmlspecialchars($delivery_address); ?></a>
+                    <?php else: ?>
+                        <a href="account.php" class="delivery-address">Thêm địa chỉ ?</a>
+                    <?php endif; ?>
                 </div>
             </div>
                 
@@ -368,205 +420,23 @@
                                     </div>
                                 </li>
 
-                                <li class="menu-item" id="accessories-menu-item">
-                                    <a href="#"><i class="fa-solid fa-headphones"></i> Phụ kiện</a>
-                                    <div class="submenu" id="accessories-submenu">
-                                        <div class="ipad-menu-right">
-                                            <div class="ipad-brands-container">
-                                                <h3>🔥Gợi ý cho bạn</h3>
-                                                <div class="popular-brands1">
-                                                    <a href="#" class="brand-badge apple">
-                                                        <img src="img/sacduphong.webp" alt="Sạc dự phòng" class="brand-icon">
-                                                        Sạc dự phòng
-                                                    </a>
-                                                    <a href="#" class="brand-badge samsung">
-                                                        <img src="img/sacduphong.webp" alt="Tai nghe không dây" class="brand-icon">
-                                                        Tai nghe không dây
-                                                    </a>
-                                                    <a href="#" class="brand-badge oppo">
-                                                        <img src="img/banphimco.webp" alt="Bàn phím cơ" class="brand-icon">
-                                                        Bàn phím cơ
-                                                    </a>
-                                                    <a href="#" class="brand-badge xiaomi">
-                                                        <img src="img/saccap.webp" alt="Sạc, Cáp" class="brand-icon">
-                                                        Sạc, Cáp
-                                                    </a>
-                                                    <a href="#" class="brand-badge xiaomi">
-                                                        <img src="img/hubchuyendoi.webp" alt="Hup chuyển đổi" class="brand-icon">
-                                                        Hub chuyển đổi
-                                                    </a>
-                                                    <a href="#" class="brand-badge xiaomi">
-                                                        <img src="img/airpodpro.webp" alt="Air Pods" class="brand-icon">
-                                                        Air Pods
-                                                    </a>
-                                                    <a href="#" class="brand-badge xiaomi">
-                                                        <img src="img/tannhiet.webp" alt="Quạt tản nhiệt" class="brand-icon">
-                                                        Quạt tản nhiệt
-                                                    </a>
-                                                    <a href="#" class="brand-badge xiaomi">
-                                                        <img src="img/oplung.webp" alt="Ốp lưng Magsafe" class="brand-icon">
-                                                        Ốp lưng Magsafe
-                                                    </a>
-                                                </div>
-                                                
-                                    
-                                                <div class="brand-categories12">
-                                                    <div class="k20">
-                                                        <div class="brand-category1">
-                                                            <h4>Âm thanh <i class="fa-solid fa-angle-right"></i></h4>
-                                                            <ul>
-                                                                <li><a href="#">Tai nghe nhét tai</a></li>
-                                                                <li><a href="#">Tai nghe chụp tai</a></li>
-                                                                <li><a href="#">Tai nghe không dây</a></li>
-                                                                <li><a href="#">Loa Bluetooth</a></li>
-                                                                <li><a href="#">Loa vi tính</a></li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                    <div class="k21">
-                                                        <div class="brand-category1">
-                                                            <h4>Phụ kiện di động <i class="fa-solid fa-angle-right"></i></h4>
-                                                            <ul>
-                                                                <li><a href="#">Sạc, Cáp</a></li>
-                                                                <li><a href="#">Sạc dự phòng</a></li>
-                                                                <li><a href="#">Bao da, Ốp lưng</a></li>
-                                                                <li><a href="#">Miếng dán màn hình</a></li>
-                                                                <li><a href="#">Bút cảm ứng</a></li>
-                                                                <li><a href="#">Thiết bị định vị</a></li>
-                                                                <li><a href="#">Gậy chụp ảnh, Gimbal</a></li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="k22">
-                                                        <div class="brand-category1">
-                                                            <h4>Phụ kiện Laptop <i class="fa-solid fa-angle-right"></i></h4>
-                                                            <ul>
-                                                                <li><a href="#">Chuột</a></li>
-                                                                <li><a href="#">Bàn phím</a></li>
-                                                                <li><a href="#">Balo, Túi xách</a></li>
-                                                                <li><a href="#">Bút trình chiếu</a></li>
-                                                                <li><a href="#">Webcam</a></li>
-                                                                <li><a href="#">Giá đỡ</a></li>
-                                                                <li><a href="#">Miếng lót chuột</a></li>
-                                                                <li><a href="#">Hub chuyển đổi</a></li>
-                                                                <li><a href="#">Phủ bàn phím</a></li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="k23">
-                                                        <div class="brand-category1">
-                                                            <h4>Gaming Gear <i class="fa-solid fa-angle-right"></i></h4>
-                                                            <ul>
-                                                                <li><a href="#">Thiết bị chơi game</a></li>
-                                                                <li><a href="#">Tai nghe</a></li>
-                                                                <li><a href="#">Loa</a></li>
-                                                                <li><a href="#">Chuột, Bàn phím</a></li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="k24">
-                                                        <div class="brand-category1">
-                                                            <h4>Thiết bị lưu trữ dữ liệu <i class="fa-solid fa-angle-right"></i></h4>
-                                                            <ul>
-                                                                <li><a href="#">USB</a></li>
-                                                                <li><a href="#">Thẻ nhớ</a></li>
-                                                                <li><a href="#">Ổ cứng di động</a></li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="k25">
-                                                        <div class="brand-category1">
-                                                            <h4>Phụ kiện khác <i class="fa-solid fa-angle-right"></i></h4>
-                                                            <ul>
-                                                                <li><a href="#">TV Box</a></li>
-                                                                <li><a href="#">Máy tính cầm tay</a></li>
-                                                                <li><a href="#">Pin kiềm</a></li>
-                                                                <li><a href="#">Mực in</a></li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>    
-                                                </div>
-                                            </div>
-                                    
-                                            <div class="best-seller1">
-                                                <h3>⚡Bán chạy nhất</h3>
-                                                <div class="best-seller-items1">
-                                                    <div class="best-seller-item1">
-                                                        <div class="best-seller-image">
-                                                            <img src="img/sac.webp" alt="Pin sạc dự phòng Magsafe Innostyle">
-                                                        </div>
-                                                        <div class="best-seller-info1">
-                                                            <h4>Pin sạc dự phòng Magsafe Innostyle</h4>
-                                                            <div class="price-info">
-                                                                <span class="current-price">899.000 đ</span>
-                                                                <span class="discount">30%</span>
-                                                            </div>
-                                                            <div class="original-price">1.290.000 đ</div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="best-seller-item2">
-                                                        <div class="best-seller-image">
-                                                            <img src="img/airpod2.webp" alt="Tai nghe AirPods 3 2022 Hộp sạc dây">
-                                                        </div>
-                                                        <div class="best-seller-info1">
-                                                            <h4>Tai nghe AirPods 3 2022 Hộp sạc dây</h4>
-                                                            <div class="price-info">
-                                                                <span class="current-price">16.490.000 đ</span>
-                                                                <span class="discount">8%</span>
-                                                            </div>
-                                                            <div class="original-price">17.990.000 đ</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                    
-                                                <div class="promo-banner11">
-                                                    <a href="#"><img src="img/phukien.webp" alt="Khuyến mãi laptop"></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                        
-
-                                </li>
+                                
 
                                 <li class="separator"></li>
                                 <li>
-                                    <a href="#"><i class="fa-brands fa-apple"></i> Chuyên trang Apple</a>
+                                    <a href="apple.php"><i class="fa-brands fa-apple"></i> Chuyên trang Apple</a>
                                 </li>
                                 <li>
-                                    <a href="#"><img src="img/samsung.png" alt="Samsung" class="brand-icon"> Chuyên trang Samsung</a>
+                                    <a href="samsung.php"><img src="img/samsung.png" alt="Samsung" class="brand-icon"> Chuyên trang Samsung</a>
                                 </li>
                                 <li>
                                     <a href="#"><img src="img/xiaomi7.png" alt="Xiaomi" class="brand-icon"> Chuyên trang Xiaomi</a>
                                 </li>
                                 <li class="separator"></li>
-                                <li>
-                                    <a href="#"><i class="fa-solid fa-headset"></i> Tai nghe, Sạc dự phòng, Sạc không dây</a>
-                                </li>
-                                <li>
-                                    <a href="#"><i class="fa-solid fa-desktop"></i> Màn hình, Cường lực, Ốp lưng</a>
-                                </li>
-                                <li>
-                                    <a href="#"><i class="fa-solid fa-fan"></i> Tản nhiệt, Combo dây sạc nhanh</a>
-                                </li>
-                                <li>
-                                    <a href="#"><i class="fa-solid fa-keyboard"></i> Bàn phím, Con chuột, Pin</a>
-                                </li>
+                          
+                              
                                 <li class="separator"></li>
-                                <li>
-                                    <a href="#">Máy cũ</a>
-                                </li>
-                                <li>
-                                    <a href="#">Thông tin hay</a>
-                                </li>
-                                <li>
-                                    <a href="#">Sim thẻ - Thanh toán tiện ích</a>
-                                </li>
+                               
                             </ul>
                         </div>
                         <div class="phone-menu-right">
@@ -714,7 +584,7 @@
             </div>
         </div>
     </div>
-    <script src="script.js"></script> <!-- Thêm dòng này -->
+    <script src="script5.js"></script> <!-- Thêm dòng này -->
 
     
     
